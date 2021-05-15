@@ -21,6 +21,7 @@ def draw_ang(screen, arrow, angle, pos):
 
 
 def unselect(self):
+    self.message = ''
     self.main_gui.active = False
     self.load_or_save_graph = None
     self.text = ''
@@ -44,7 +45,7 @@ def dijkstra(graph, node):
             if result[rib.out_node.name] is None or result[rib.out_node.name] > result[current_node.name] + rib.weight:
                 result[rib.out_node.name] = result[current_node.name] + rib.weight
                 current_nodes.append(rib.out_node)
-    return result
+    return 1, node, result
 
 
 def calculate_the_ways(graph, node):
@@ -62,7 +63,7 @@ def calculate_the_ways(graph, node):
         current_node = current_nodes.pop(0)
         if current_node == node:
             return False
-    return result
+    return 2, node, result
 
 
 class Gui:
@@ -93,7 +94,7 @@ class Gui:
         self.delete_rect.h += 4
         self.save = pygame.Rect(605, 80, 80, 32)
         self.load = pygame.Rect(718, 80, 80, 32)
-        self.input_text = pygame.Rect(605, 114, 196, 32)
+        self.input_text = pygame.Rect(605, 114, 194, 32)
         self.active = False
 
     def collide(self, pos):
@@ -176,6 +177,8 @@ class Main:
         self.selected_rib = None
         self.input_text = False
         self.load_or_save_graph = 0
+        self.message = ''
+        self.result = None
         self.run()
 
     def run(self):
@@ -198,6 +201,8 @@ class Main:
                         elif event.key == pygame.K_BACKSPACE:
                             self.text = self.text[:-1]
                             self.selected_rib.set_weight(self.text)
+                        elif event.key == pygame.K_ESCAPE:
+                            unselect(self)
                         else:
                             if self.selected_rib:
                                 if event.unicode.isdigit():
@@ -226,10 +231,12 @@ class Main:
                         if selected:
                             unselect(self)
                             if selected == 2:
+                                self.selected = [0, 0, 0, 0]
                                 self.main_gui.active = True
                                 self.input_text = True
                                 self.load_or_save_graph = 2
                             elif selected == 1:
+                                self.selected = [0, 0, 0, 0]
                                 self.main_gui.active = True
                                 self.input_text = True
                                 self.load_or_save_graph = 1
@@ -351,18 +358,24 @@ class Main:
                     elif event.key == pygame.K_d and (self.selected_node or self.selected_rib):
                         self.delete_node_or_rib()
                     elif event.key == pygame.K_b and self.selected_node:
-                        print(dijkstra(self.graph_edit, self.selected_node))
+                        self.result = dijkstra(self.graph_edit, self.selected_node)
+                        self.create_message_from_result()
                     elif event.key == pygame.K_c and self.selected_node:
-                        print(calculate_the_ways(self.graph_edit, self.selected_node))
+                        self.result = calculate_the_ways(self.graph_edit, self.selected_node)
+                        self.create_message_from_result()
                     elif event.key == pygame.K_s:
-                        pass
+                        unselect(self)
+                        self.input_text = True
+                        self.main_gui.active = True
                     elif event.key == pygame.K_l:
-                        pass
+                        unselect(self)
+                        self.input_text = True
+                        self.main_gui.active = True
 
-            print(self.selected, self.wait_for_node, self.selected_node, self.selected_rib,
-                  self.load_or_save_graph)  # debug
+            # print(self.selected, self.wait_for_node, self.selected_node, self.selected_rib,
+            # self.load_or_save_graph)  # debug
             #  print(self.selected_node, self.graph_edit.nodes, self.graph_edit.ribs)
-            print(self.input_text, self.text)
+            # print(self.input_text, self.text)
             # try:
             #     print('text', self.text, 'weight', self.selected_rib.weight)
             # except:
@@ -401,6 +414,13 @@ class Main:
         # y_text = 20 - text.get_height() // 2
         # self.gui.blit(text, (x_text, y_text))
         self.win.blit(self.gui, (600, 0))
+        font_for_message = pygame.font.Font(None, 28)
+        x_text = 605
+        y_text = 130
+        for line in self.message.split('\n'):
+            text = font_for_message.render(line, True, COLOR_WHITE)
+            y_text += 24
+            self.win.blit(text, (x_text, y_text))
         if self.input_text:
             text = font.render(f"{self.text}", True, COLOR_WHITE)
             x_text = self.main_gui.input_text.x + 6
@@ -425,13 +445,36 @@ class Main:
             unselect(self)
 
     def save(self, filename):
-
         with open(f'{filename}.graph', 'wb') as f:
             pickle.dump(self.graph_edit, f)
+            self.message = 'Граф успешно \nсохранён'
 
     def load(self, filename):
-        with open(f'{filename}.graph', 'rb') as f:
-            self.graph_edit = pickle.load(f)
+        if os.path.exists(f"{filename},graph"):
+            with open(f'{filename}.graph', 'rb') as f:
+                self.graph_edit = pickle.load(f)
+        else:
+            self.message = 'Такого файла не\n существует'
+
+    def create_message_from_result(self):
+        text = None
+        if self.result:
+            if self.result[0] == 1:
+                text = f'Кратчайшие пути \nиз точки {self.result[1]}\n'
+                result = self.result[2]
+                print(result)
+                for key, value in result.items():
+                    text += f'{self.result[1]} -> {key} = {value if value is not None else "Нет пути"}\n'
+                print(text)
+            elif self.result[0] == 2:
+                text = f'Кол-во путей \nиз точки {self.result[1]}\n'
+                result = self.result[2]
+                if result:
+                    for key, value in result.items():
+                        text += f'{self.result[1]} -> {key} = {value if value else "Нет пути"}\n'
+        else:
+            text = 'Граф содержит \nциклы'
+        self.message = text
 
 
 class Node:
