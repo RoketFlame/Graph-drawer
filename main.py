@@ -409,10 +409,6 @@ class Main:
             x_text = 5
             y_text = 47 + text.get_height() // 2
             self.gui.blit(text, (x_text, y_text))
-        # text = font.render(f"Mode - {self.selected}", True, COLOR_WHITE)
-        # x_text = 5
-        # y_text = 20 - text.get_height() // 2
-        # self.gui.blit(text, (x_text, y_text))
         self.win.blit(self.gui, (600, 0))
         font_for_message = pygame.font.Font(None, 28)
         x_text = 605
@@ -432,12 +428,12 @@ class Main:
         try:
             self.graph_edit.remove_node(self.selected_node)
             copy_ribs = self.graph_edit.ribs[:]
-            self.selected_node = None
             self.text = ''
 
             for rib in copy_ribs:
                 if self.selected_node in rib.nodes:
                     self.graph_edit.remove_rib(rib)
+            self.selected_node = None
         except Exception as ex:
             self.graph_edit.remove_rib(self.selected_rib)
             self.selected_rib = None
@@ -450,7 +446,7 @@ class Main:
             self.message = 'Граф успешно \nсохранён'
 
     def load(self, filename):
-        if os.path.exists(f"{filename},graph"):
+        if os.path.exists(f"{filename}.graph"):
             with open(f'{filename}.graph', 'rb') as f:
                 self.graph_edit = pickle.load(f)
         else:
@@ -462,10 +458,8 @@ class Main:
             if self.result[0] == 1:
                 text = f'Кратчайшие пути \nиз точки {self.result[1]}\n'
                 result = self.result[2]
-                print(result)
                 for key, value in result.items():
                     text += f'{self.result[1]} -> {key} = {value if value is not None else "Нет пути"}\n'
-                print(text)
             elif self.result[0] == 2:
                 text = f'Кол-во путей \nиз точки {self.result[1]}\n'
                 result = self.result[2]
@@ -632,10 +626,9 @@ class Graph:
         self.nodes.remove(node)
 
     def remove_rib(self, rib):
-        if rib in self.ribs:
-            self.ribs.remove(rib)
-            for node in rib.nodes:
-                node.remove_rib(rib)
+        self.ribs.remove(rib)
+        for node in rib.nodes:
+            node.remove_rib(rib)
 
 
 if __name__ == '__main__':
