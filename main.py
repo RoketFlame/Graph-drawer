@@ -1,6 +1,7 @@
 import math
 import os
 import pickle
+import sys
 
 import pygame
 
@@ -12,6 +13,16 @@ COLOR_BLACK = pygame.Color('black')
 COLOR_ACTIVE_INPUT_TEXT = pygame.Color('dodgerblue2')
 COLOR_INACTIVE_INPUT_TEXT = pygame.Color('lightskyblue3')
 DIRECTORY_FOR_IMAGES = 'gui_images'
+
+
+def resource_path(relative_path):
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MAIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
 
 
 def draw_ang(screen, arrow, angle, pos):
@@ -68,10 +79,10 @@ def calculate_the_ways(graph, node):
 
 class Gui:
     def __init__(self):
-        self.node = self.load_image(DIRECTORY_FOR_IMAGES + '/node.png')
-        self.oriented_rib = self.load_image(DIRECTORY_FOR_IMAGES + '/orientedrib.png')
-        self.no_oriented_rib = self.load_image(DIRECTORY_FOR_IMAGES + '/noorientedrib.png')
-        self.delete = self.load_image(DIRECTORY_FOR_IMAGES + '/delete.png')
+        self.node = self.load_image(resource_path(DIRECTORY_FOR_IMAGES + '/node.png'))
+        self.oriented_rib = self.load_image(resource_path(DIRECTORY_FOR_IMAGES + '/orientedrib.png'))
+        self.no_oriented_rib = self.load_image(resource_path(DIRECTORY_FOR_IMAGES + '/noorientedrib.png'))
+        self.delete = self.load_image(resource_path(DIRECTORY_FOR_IMAGES + '/delete.png'))
         self.delete_rect = self.delete.get_rect().move(754, 5)
         self.node_rect = self.node.get_rect().move(604, 5)
         self.no_oriented_rib_rect = self.no_oriented_rib.get_rect().move(654, 5)
@@ -105,7 +116,7 @@ class Gui:
         elif self.oriented_rib_rect.collidepoint(pos):
             return [0, 0, 1, 0]
         elif self.delete_rect.collidepoint(pos):
-            return True
+            return 3
         elif self.save.collidepoint(pos):
             return 1
         elif self.load.collidepoint(pos):
@@ -240,8 +251,8 @@ class Main:
                                 self.main_gui.active = True
                                 self.input_text = True
                                 self.load_or_save_graph = 1
-                            elif selected == True:
-                                self.delete_node_or_rib()
+                            elif selected == 3:
+                                pass
                             elif not selected:
                                 pass
                             else:
@@ -260,8 +271,9 @@ class Main:
                                         if ((x - pos[0]) ** 2 + (y - pos[1]) ** 2) ** 0.5 < RADIUS * 2:
                                             f = False
                                     if f:
-                                        name = min(filter(lambda x: ALPHABET_ENG[x], ALPHABET_ENG.keys()))
-                                        ALPHABET_ENG[name] = False
+                                        name = min(filter(lambda x: self.graph_edit.ALPHABET_ENG[x],
+                                                          self.graph_edit.ALPHABET_ENG.keys()))
+                                        self.graph_edit.ALPHABET_ENG[name] = False
                                         node = Node(*pos, name)
                                         INDEX += 1
                                         self.graph_edit.add_node(node)
@@ -612,6 +624,7 @@ class NoOrientedRib(Rib):
 
 class Graph:
     def __init__(self):
+        self.ALPHABET_ENG = ALPHABET_ENG.copy()
         self.nodes = []
         self.ribs = []
 
@@ -633,6 +646,10 @@ class Graph:
 
 if __name__ == '__main__':
     pygame.init()
+    print(os.listdir('.'))
     win = pygame.display.set_mode((805, 600))
-    pygame.display.set_caption('Графы')
+    pygame.display.set_caption('Graph_drwer')
+    icon = pygame.image.load(resource_path('icon.png'))
+    icon = icon.convert_alpha()
+    pygame.display.set_icon(icon)
     main = Main(win)
