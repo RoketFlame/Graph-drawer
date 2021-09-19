@@ -1,7 +1,6 @@
 import math
 import os
 import pickle
-import sys
 
 import pygame
 
@@ -16,13 +15,7 @@ DIRECTORY_FOR_IMAGES = 'gui_images'
 
 
 def resource_path(relative_path):
-    try:
-        # PyInstaller creates a temp folder and stores path in _MEIPASS
-        base_path = sys._MAIPASS
-    except Exception:
-        base_path = os.path.abspath(".")
-
-    return os.path.join(base_path, relative_path)
+    return relative_path
 
 
 def draw_ang(screen, arrow, angle, pos):
@@ -53,7 +46,8 @@ def dijkstra(graph, node):
                     result[rib.input_node.name] > result[current_node.name] + rib.weight:
                 result[rib.input_node.name] = result[current_node.name] + rib.weight
                 current_nodes.append(rib.input_node)
-            if result[rib.out_node.name] is None or result[rib.out_node.name] > result[current_node.name] + rib.weight:
+            if result[rib.out_node.name] is None or result[rib.out_node.name] > result[
+                current_node.name] + rib.weight:
                 result[rib.out_node.name] = result[current_node.name] + rib.weight
                 current_nodes.append(rib.out_node)
     return 1, node, result
@@ -67,7 +61,8 @@ def calculate_the_ways(graph, node):
     current_node = current_nodes.pop(0)
     while True:
         for rib in current_node.out_ribs:
-            result[rib.input_node.name] = sum([result[rib.out_node.name] for rib in rib.input_node.input_ribs])
+            result[rib.input_node.name] = sum(
+                [result[rib.out_node.name] for rib in rib.input_node.input_ribs])
             current_nodes.append(rib.input_node)
         if not current_nodes:
             break
@@ -80,8 +75,10 @@ def calculate_the_ways(graph, node):
 class Gui:
     def __init__(self):
         self.node = self.load_image(resource_path(DIRECTORY_FOR_IMAGES + '/node.png'))
-        self.oriented_rib = self.load_image(resource_path(DIRECTORY_FOR_IMAGES + '/orientedrib.png'))
-        self.no_oriented_rib = self.load_image(resource_path(DIRECTORY_FOR_IMAGES + '/noorientedrib.png'))
+        self.oriented_rib = self.load_image(
+            resource_path(DIRECTORY_FOR_IMAGES + '/orientedrib.png'))
+        self.no_oriented_rib = self.load_image(
+            resource_path(DIRECTORY_FOR_IMAGES + '/noorientedrib.png'))
         self.delete = self.load_image(resource_path(DIRECTORY_FOR_IMAGES + '/delete.png'))
         self.delete_rect = self.delete.get_rect().move(754, 5)
         self.node_rect = self.node.get_rect().move(604, 5)
@@ -143,7 +140,8 @@ class Gui:
         win.blit(self.node, (self.node_rect.x + 2, self.node_rect.y + 2))
         win.blit(self.delete, (self.delete_rect.x + 2, self.delete_rect.y + 2))
         win.blit(self.oriented_rib, (self.oriented_rib_rect.x + 2, self.oriented_rib_rect.y + 2))
-        win.blit(self.no_oriented_rib, (self.no_oriented_rib_rect.x + 2, self.no_oriented_rib_rect.y + 2))
+        win.blit(self.no_oriented_rib,
+                 (self.no_oriented_rib_rect.x + 2, self.no_oriented_rib_rect.y + 2))
         pygame.draw.rect(win, (22, 171, 168), self.save)
         pygame.draw.rect(win, (22, 171, 168), self.load)
         font = pygame.font.Font(None, 30)
@@ -240,19 +238,20 @@ class Main:
                     if event.button == 1:
                         selected = self.main_gui.collide(pos)
                         if selected:
-                            unselect(self)
                             if selected == 2:
+                                unselect(self)
                                 self.selected = [0, 0, 0, 0]
                                 self.main_gui.active = True
                                 self.input_text = True
                                 self.load_or_save_graph = 2
                             elif selected == 1:
+                                unselect(self)
                                 self.selected = [0, 0, 0, 0]
                                 self.main_gui.active = True
                                 self.input_text = True
                                 self.load_or_save_graph = 1
                             elif selected == 3:
-                                pass
+                                self.delete_node_or_rib()
                             elif not selected:
                                 pass
                             else:
@@ -268,7 +267,8 @@ class Main:
                                     f = True
                                     for node in self.graph_edit.nodes:
                                         x, y = node.get_pos()
-                                        if ((x - pos[0]) ** 2 + (y - pos[1]) ** 2) ** 0.5 < RADIUS * 2:
+                                        if ((x - pos[0]) ** 2 + (
+                                                y - pos[1]) ** 2) ** 0.5 < RADIUS * 2:
                                             f = False
                                     if f:
                                         name = min(filter(lambda x: self.graph_edit.ALPHABET_ENG[x],
