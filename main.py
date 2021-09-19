@@ -1,6 +1,8 @@
 import math
 import os
 import pickle
+from tkinter import Tk  # from tkinter import Tk for Python 3.x
+from tkinter.filedialog import askopenfilename, asksaveasfile
 
 import pygame
 
@@ -26,10 +28,7 @@ def draw_ang(screen, arrow, angle, pos):
 
 def unselect(self):
     self.message = ''
-    self.main_gui.active = False
-    self.load_or_save_graph = None
     self.text = ''
-    self.input_text = False
     self.wait_for_node = False
     self.selected_node = None
     self.input_weight = False
@@ -102,8 +101,6 @@ class Gui:
         self.delete_rect.h += 4
         self.save = pygame.Rect(605, 80, 80, 32)
         self.load = pygame.Rect(718, 80, 80, 32)
-        self.input_text = pygame.Rect(605, 114, 194, 32)
-        self.active = False
 
     def collide(self, pos):
         if self.node_rect.collidepoint(pos):
@@ -126,10 +123,6 @@ class Gui:
         pygame.draw.rect(win, COLOR_WHITE, self.delete_rect, 2)
         pygame.draw.rect(win, COLOR_WHITE, self.oriented_rib_rect, 2)
         pygame.draw.rect(win, COLOR_WHITE, self.no_oriented_rib_rect, 2)
-        if self.active:
-            pygame.draw.rect(win, COLOR_ACTIVE_INPUT_TEXT, self.input_text, 4)
-        else:
-            pygame.draw.rect(win, COLOR_INACTIVE_INPUT_TEXT, self.input_text, 4)
         if active is not None:
             if active[0]:
                 pygame.draw.rect(win, pygame.Color('red'), self.node_rect, 2)
@@ -169,7 +162,7 @@ class Gui:
         return image
 
 
-class Main:
+class Main():
     def __init__(self, win):
         self.graph_edit = Graph()
         self.win = win
@@ -184,8 +177,6 @@ class Main:
         self.selected_node = None
         self.input_weight = False
         self.selected_rib = None
-        self.input_text = False
-        self.load_or_save_graph = 0
         self.message = ''
         self.result = None
         self.run()
@@ -217,22 +208,6 @@ class Main:
                                 if event.unicode.isdigit():
                                     self.text += event.unicode
                                     self.selected_rib.set_weight(self.text)
-                elif self.input_text:
-                    if event.type == pygame.KEYDOWN:
-                        if event.key == pygame.K_RETURN:
-                            if self.load_or_save_graph == 1:
-                                self.save(self.text)
-                            elif self.load_or_save_graph == 2:
-                                self.load(self.text)
-                            self.text = ''
-                            self.main_gui.active = False
-                            self.input_text = False
-                        elif event.key == pygame.K_BACKSPACE:
-                            self.text = self.text[:-1]
-                        elif event.key == pygame.K_ESCAPE:
-                            unselect(self)
-                        else:
-                            self.text += event.unicode
                 # detect mouse event
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     if event.button == 1:
@@ -240,18 +215,13 @@ class Main:
                         if selected:
                             if selected == 2:
                                 unselect(self)
-                                self.selected = [0, 0, 0, 0]
-                                self.main_gui.active = True
-                                self.input_text = True
-                                self.load_or_save_graph = 2
+                                self.load_graph()
                             elif selected == 1:
                                 unselect(self)
-                                self.selected = [0, 0, 0, 0]
-                                self.main_gui.active = True
-                                self.input_text = True
-                                self.load_or_save_graph = 1
+                                self.save_graph()
                             elif selected == 3:
-                                self.delete_node_or_rib()
+                                if self.selected_node or self.selected_rib:
+                                    self.delete_node_or_rib()
                             elif not selected:
                                 pass
                             else:
@@ -354,7 +324,7 @@ class Main:
                                         pass
 
                 # detect press keys
-                if event.type == pygame.KEYDOWN and not self.input_text:
+                if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_n:
                         self.selected = [1, 0, 0, 0]
                         unselect(self)
@@ -377,12 +347,8 @@ class Main:
                         self.create_message_from_result()
                     elif event.key == pygame.K_s:
                         unselect(self)
-                        self.input_text = True
-                        self.main_gui.active = True
                     elif event.key == pygame.K_l:
                         unselect(self)
-                        self.input_text = True
-                        self.main_gui.active = True
 
             # print(self.selected, self.wait_for_node, self.selected_node, self.selected_rib,
             # self.load_or_save_graph)  # debug
@@ -429,11 +395,6 @@ class Main:
             text = font_for_message.render(line, True, COLOR_WHITE)
             y_text += 24
             self.win.blit(text, (x_text, y_text))
-        if self.input_text:
-            text = font.render(f"{self.text}", True, COLOR_WHITE)
-            x_text = self.main_gui.input_text.x + 6
-            y_text = self.main_gui.input_text.y + 6
-            self.win.blit(text, (x_text, y_text))
         self.main_gui.draw_gui(self.win, active=self.selected)
 
     def delete_node_or_rib(self):
@@ -452,16 +413,20 @@ class Main:
         finally:
             unselect(self)
 
-    def save(self, filename):
-        with open(f'{filename}.graph', 'wb') as f:
-            pickle.dump(self.graph_edit, f)
-            self.message = 'Граф успешно \nсохранён'
-
-    def load(self, filename):
-        if os.path.exists(f"{filename}.graph"):
-            with open(f'{filename}.graph', 'rb') as f:
+    def load_graph(self):
+        try:
+            filename = askopenfilename()
+            with open(f'{filename}', 'rb') as f:
                 self.graph_edit = pickle.load(f)
-        else:
+        except:
+            self.message = 'Такого файла не\n существует'
+
+    def save_graph(self):
+        try:
+            filename = asksaveasfile(mode='wb')
+            pickle.dump(self.graph_edit, filename)
+            self.message = 'Граф успешно \nсохранён'
+        except:
             self.message = 'Такого файла не\n существует'
 
     def create_message_from_result(self):
@@ -535,7 +500,7 @@ class Node:
 
 class Rib:
     def __init__(self, weight=0):
-        self.nodes = [None, None]
+        self.nodes = [Node, Node]
         self.out_node = None
         self.input_node = None
         self.weight = weight
@@ -635,7 +600,7 @@ class Graph:
         self.ribs.append(rib)
 
     def remove_node(self, node):
-        ALPHABET_ENG[node.name] = True
+        self.ALPHABET_ENG[node.name] = True
         self.nodes.remove(node)
 
     def remove_rib(self, rib):
@@ -646,7 +611,7 @@ class Graph:
 
 if __name__ == '__main__':
     pygame.init()
-    print(os.listdir('.'))
+    Tk().withdraw()
     win = pygame.display.set_mode((805, 600))
     pygame.display.set_caption('Graph_drwer')
     icon = pygame.image.load(resource_path('icon.png'))
